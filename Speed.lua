@@ -1,55 +1,63 @@
--- Script Prison Life - Kill All excepto tú - Botón flotante interactivo para KRNL
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
--- Función para matar a un jugador excepto tú
+-- Flag para activar/desactivar el kill all
+local KillAllActive = false
+
+-- Función para matar un jugador (excepto tú)
 local function killPlayer(player)
     if player.Character and player.Character:FindFirstChild("Humanoid") and player ~= LocalPlayer then
         player.Character.Humanoid.Health = 0
     end
 end
 
--- Función para matar a todos excepto tú
-local function killAllExceptLocal()
-    for _, player in pairs(Players:GetPlayers()) do
-        killPlayer(player)
-    end
+-- Función que mata a todos los jugadores (excepto tú) continuamente mientras KillAllActive == true
+local function KillAllLoop()
+    spawn(function()
+        while KillAllActive do
+            for _, player in pairs(Players:GetPlayers()) do
+                killPlayer(player)
+            end
+            wait(0.5)
+        end
+    end)
 end
 
--- Mata a cualquier jugador que se una después, excepto tú
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(char)
-        wait(1) -- esperar que cargue el personaje
-        killPlayer(player)
-    end)
-end)
-
--- Interfaz en CoreGui
+-- Crear UI flotante
 local CoreGui = game:GetService("CoreGui")
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PrisonLifeKillAllGui"
+ScreenGui.Name = "KillAllGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- Botón flotante pequeño y draggable
 local FloatButton = Instance.new("TextButton")
 FloatButton.Size = UDim2.new(0, 80, 0, 40)
-FloatButton.Position = UDim2.new(1, -90, 0, 20) -- esquina superior derecha
+FloatButton.Position = UDim2.new(1, -90, 0, 20)
 FloatButton.AnchorPoint = Vector2.new(1, 0)
-FloatButton.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
+FloatButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
 FloatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FloatButton.Text = "Kill All"
+FloatButton.Text = "Kill All: OFF"
 FloatButton.Font = Enum.Font.SourceSansBold
-FloatButton.TextSize = 20
+FloatButton.TextSize = 18
 FloatButton.Parent = ScreenGui
 FloatButton.Active = true
 FloatButton.Draggable = true
 
+-- Toggle botón
 FloatButton.MouseButton1Click:Connect(function()
-    killAllExceptLocal()
+    KillAllActive = not KillAllActive
+    FloatButton.Text = KillAllActive and "Kill All: ON" or "Kill All: OFF"
+    if KillAllActive then
+        KillAllLoop()
+    end
 end)
 
--- Ejecutar killAllExceptLocal al correr el script (opcional)
-killAllExceptLocal()
+-- Mata a nuevos jugadores cuando entren, si está activo
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1)
+        if KillAllActive then
+            killPlayer(player)
+        end
+    end)
+end)
