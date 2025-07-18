@@ -1,87 +1,70 @@
--- Mega OP Collector para Legends of Speed (Checkpoints + Gemas)
-
+-- 🔥 Legends of Speed - Paso AutoFarm Muy Roto (Todos los mundos, sin cooldown)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local tpEnabled = false
+local pasoFarmActivado = false
 
--- Cache de checkpoints y gemas
-local checkpoints = {}
-local gems = {}
-
--- Función para actualizar caches
-local function updateCaches()
-    checkpoints = {}
-    gems = {}
+-- 🔍 Buscar todos los pasos del juego (orbs naranjas)
+local function getAllStepOrbs()
+    local orbs = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local lname = obj.Name:lower()
-            if lname:find("checkpoint") or lname:find("step") then
-                table.insert(checkpoints, obj)
-            elseif lname:find("gem") then
-                table.insert(gems, obj)
-            end
+        if obj:IsA("BasePart") and (obj.Name:lower():find("step") or obj.Name:lower():find("orb")) then
+            table.insert(orbs, obj)
         end
     end
+    return orbs
 end
 
--- Teletransporta a una lista de partes sin pausas perceptibles
-local function teleportFast(partsList)
+-- ⚡ Teletransporte rápido a todos los pasos
+local function recogerPasos()
     local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    for _, part in ipairs(partsList) do
-        pcall(function()
-            hrp.CFrame = CFrame.new(part.Position + Vector3.new(0, 3, 0))
-        end)
-        task.wait(0.005) -- casi instantáneo, ajusta si detecta rubberband
+    for _, paso in ipairs(getAllStepOrbs()) do
+        hrp.CFrame = CFrame.new(paso.Position + Vector3.new(0, 2.5, 0))
+        task.wait(0.01) -- pausa mínima para estabilidad
     end
 end
 
--- Loop principal que se ejecuta en Heartbeat
-RunService.Heartbeat:Connect(function()
-    if tpEnabled then
-        pcall(function()
-            updateCaches()
-            teleportFast(checkpoints)
-            teleportFast(gems)
-        end)
+-- 🔁 Activar el autofarm si está activado
+RunService.Stepped:Connect(function()
+    if pasoFarmActivado then
+        pcall(recogerPasos)
     end
 end)
 
--- UI para activar/desactivar
-local function createUI()
-    local oldGui = PlayerGui:FindFirstChild("LegendSpeedOPUI")
-    if oldGui then oldGui:Destroy() end
+-- 🧠 Crear interfaz para activar/desactivar
+local function crearInterfaz()
+    local anterior = PlayerGui:FindFirstChild("PasoUI")
+    if anterior then anterior:Destroy() end
 
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "LegendSpeedOPUI"
+    local gui = Instance.new("ScreenGui", PlayerGui)
+    gui.Name = "PasoUI"
     gui.ResetOnSpawn = false
-    gui.Parent = PlayerGui
 
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 280, 0, 60)
-    btn.Position = UDim2.new(0.03, 0, 0.78, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.TextScaled = true
-    btn.BorderSizePixel = 0
-    btn.BackgroundTransparency = 0.15
-    btn.Text = "⚡ LEGEND SPEED FARM OFF"
-    btn.Parent = gui
+    local boton = Instance.new("TextButton", gui)
+    boton.Size = UDim2.new(0, 220, 0, 50)
+    boton.Position = UDim2.new(0.03, 0, 0.78, 0)
+    boton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    boton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    boton.TextScaled = true
+    boton.Text = "👣 STEP FARM OFF"
+    boton.BorderSizePixel = 0
 
-    btn.MouseButton1Click:Connect(function()
-        tpEnabled = not tpEnabled
-        btn.Text = tpEnabled and "⚡ LEGEND SPEED FARM ON" or "⚡ LEGEND SPEED FARM OFF"
+    boton.MouseButton1Click:Connect(function()
+        pasoFarmActivado = not pasoFarmActivado
+        boton.Text = pasoFarmActivado and "👣 STEP FARM ON" or "👣 STEP FARM OFF"
     end)
-    btn.TouchTap:Connect(btn.MouseButton1Click)
+
+    boton.TouchTap:Connect(boton.MouseButton1Click)
 
     Players.LocalPlayer.CharacterAdded:Connect(function()
-        wait(1)
-        createUI()
+        task.wait(1)
+        crearInterfaz()
     end)
 end
 
-createUI()
+crearInterfaz()
